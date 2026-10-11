@@ -15,45 +15,29 @@ st.markdown("""
     /* Force the entire background to be dark so it always looks professional */
     .stApp { background-color: #0E1117 !important; color: #FAFAFA !important; }
     
-    /* Make all buttons thick and bold */
+    /* 1. GLOBAL BUTTON STYLING */
     div.stButton > button { 
         height: 60px !important; 
         border-radius: 8px !important; 
-        font-size: 18px !important;
+    }
+    div.stButton > button p {
         font-weight: 900 !important;
+        font-size: 18px !important;
+    }
+
+    /* 2. CENTER PANEL DEFAULT: Set all buttons in Center Panel to Light Red */
+    div[data-testid="column"]:nth-child(2) div.stButton > button {
+        background-color: #EF9A9A !important; 
+        border: 2px solid #C62828 !important;
+    }
+    div[data-testid="column"]:nth-child(2) div.stButton > button p {
+        color: #000000 !important; /* Force black text */
     }
     
-    /* 1. EVAL WINS Button (Secondary Button in the 1st Sub-Column -> Light Green) */
-    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] {
+    /* 3. CENTER PANEL OVERRIDE: Set the 1st button in the Horizontal pair to Light Green */
+    div[data-testid="column"]:nth-child(2) div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
         background-color: #A5D6A7 !important; 
         border: 2px solid #2E7D32 !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] * {
-        color: #000000 !important;
-        font-weight: 900 !important;
-        font-size: 18px !important;
-    }
-    
-    /* 2. EVAL LOSES Button (Primary Button in the 2nd Sub-Column -> Light Red) */
-    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(2) button[kind="primary"] {
-        background-color: #EF9A9A !important; 
-        border: 2px solid #C62828 !important;
-    }
-    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(2) button[kind="primary"] * {
-        color: #000000 !important;
-        font-weight: 900 !important;
-        font-size: 18px !important;
-    }
-    
-    /* 3. RESET ALL DATA Button (Standalone Primary Button -> Light Red) */
-    div[data-testid="column"]:nth-of-type(2) > div:last-child button[kind="primary"] {
-        background-color: #EF9A9A !important; 
-        border: 2px solid #C62828 !important;
-    }
-    div[data-testid="column"]:nth-of-type(2) > div:last-child button[kind="primary"] * {
-        color: #000000 !important;
-        font-weight: 900 !important;
-        font-size: 16px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -361,7 +345,7 @@ with tab1:
 
     col1, col2, col3 = st.columns([2, 2.5, 2])
     
-    # --- LEFT PANEL: Projections (Using single-line concatenated string to bypass Markdown errors) ---
+    # --- LEFT PANEL: Projections ---
     pnl = state.broker_balance - st.session_state.initial_broker_bal
     pnl_color = "#00E676" if pnl > 0 else "#FF5252" if pnl < 0 else "#AAAAAA"
     pnl_text = f"+${pnl:.2f}" if pnl > 0 else f"-${abs(pnl):.2f}" if pnl < 0 else "$0.00"
@@ -410,7 +394,7 @@ with tab1:
     with col1:
         st.markdown(left_html, unsafe_allow_html=True)
 
-    # --- CENTER PANEL: Action Buttons (Using single-line concatenated string) ---
+    # --- CENTER PANEL: Action Buttons ---
     lot_txt = term_state if term_state else f"{rec_lot:.2f}"
     center_html = (
         "<div style='background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 40px 20px; color: #FFFFFF; text-align: center;'>"
@@ -424,7 +408,6 @@ with tab1:
         st.markdown("<br>", unsafe_allow_html=True)
         
         ca, cb = st.columns(2)
-        # Passed kind variables to uniquely apply the custom CSS styles to each button
         with ca: 
             st.button("EVAL WINS (W)", type="secondary", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
         with cb: 
@@ -433,7 +416,7 @@ with tab1:
         st.markdown("<br>", unsafe_allow_html=True)
         st.button("RESET ALL DATA", type="primary", use_container_width=True, on_click=reset_system)
 
-    # --- RIGHT PANEL: Sequences (Using single-line concatenated string to bypass Markdown errors) ---
+    # --- RIGHT PANEL: Sequences ---
     right_html = (
         "<div style='background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 25px; height: 100%; color: #FFFFFF;'>"
         "<div style='text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;'>ACTIVE SEQUENCE PATHS</div>"

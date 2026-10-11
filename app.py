@@ -9,35 +9,42 @@ from typing import Dict, Any
 # ==========================================
 st.set_page_config(page_title="Funded Hedge AI Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Bulletproof CSS to force perfect UI colors and override Streamlit's native button formatting
+# Bulletproof CSS using direct attribute targeting to bypass Streamlit's dynamic DOM wrappers
 st.markdown("""
 <style>
     /* Force the entire background to be dark so it always looks professional */
     .stApp { background-color: #0E1117 !important; color: #FAFAFA !important; }
     
-    /* 1. GLOBAL BUTTON STYLING */
+    /* Make all buttons tall and standardized */
     div.stButton > button { 
         height: 60px !important; 
         border-radius: 8px !important; 
     }
-    div.stButton > button p {
+    
+    /* 1. EVAL WINS (Light Green) - Targets the strictly defined "secondary" button inside the dashboard columns */
+    div[data-testid="column"] button[kind="secondary"], 
+    div[data-testid="column"] button[data-testid="baseButton-secondary"] {
+        background-color: #A5D6A7 !important; 
+        border: 2px solid #2E7D32 !important;
+    }
+    div[data-testid="column"] button[kind="secondary"] p, 
+    div[data-testid="column"] button[data-testid="baseButton-secondary"] p {
+        color: #000000 !important;
         font-weight: 900 !important;
         font-size: 18px !important;
     }
-
-    /* 2. CENTER PANEL DEFAULT: Set all buttons in Center Panel to Light Red */
-    div[data-testid="column"]:nth-child(2) div.stButton > button {
+    
+    /* 2. EVAL LOSES & RESET (Light Red) - Targets the strictly defined "primary" buttons inside the dashboard columns */
+    div[data-testid="column"] button[kind="primary"], 
+    div[data-testid="column"] button[data-testid="baseButton-primary"] {
         background-color: #EF9A9A !important; 
         border: 2px solid #C62828 !important;
     }
-    div[data-testid="column"]:nth-child(2) div.stButton > button p {
-        color: #000000 !important; /* Force black text */
-    }
-    
-    /* 3. CENTER PANEL OVERRIDE: Set the 1st button in the Horizontal pair to Light Green */
-    div[data-testid="column"]:nth-child(2) div[data-testid="stHorizontalBlock"] > div:nth-child(1) div.stButton > button {
-        background-color: #A5D6A7 !important; 
-        border: 2px solid #2E7D32 !important;
+    div[data-testid="column"] button[kind="primary"] p, 
+    div[data-testid="column"] button[data-testid="baseButton-primary"] p {
+        color: #000000 !important;
+        font-weight: 900 !important;
+        font-size: 18px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -334,7 +341,7 @@ with tab2:
         st.number_input("Broker Balance", value=st.session_state.inp_broker_bal, key="inp_broker_bal")
         st.number_input("Base Broker Lot", value=st.session_state.inp_base_broker_lot, key="inp_base_broker_lot")
         
-    st.button("Apply Settings & Refresh System", on_click=apply_settings, type="primary")
+    st.button("Apply Settings & Refresh System", on_click=apply_settings)
 
 with tab1:
     if st.session_state.status_message:
@@ -408,8 +415,11 @@ with tab1:
         st.markdown("<br>", unsafe_allow_html=True)
         
         ca, cb = st.columns(2)
+        # Using type="secondary" triggers the exact CSS rule block for the Light Green Button
         with ca: 
             st.button("EVAL WINS (W)", type="secondary", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
+        
+        # Using type="primary" triggers the exact CSS rule block for the Light Red Button
         with cb: 
             st.button("EVAL LOSES (L)", type="primary", use_container_width=True, on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state))
         

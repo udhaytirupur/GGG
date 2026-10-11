@@ -9,7 +9,7 @@ from typing import Dict, Any
 # ==========================================
 st.set_page_config(page_title="Funded Hedge AI Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Bulletproof CSS using adjacent sibling markers. This will NEVER fail or revert to white.
+# Bulletproof CSS using adjacent sibling markers
 st.markdown("""
 <style>
     /* Force the entire background to be dark so it always looks professional */
@@ -24,47 +24,92 @@ st.markdown("""
     /* Hide the invisible markers so they don't take up space */
     div.element-container:has(.marker-win),
     div.element-container:has(.marker-loss),
-    div.element-container:has(.marker-reset) {
+    div.element-container:has(.marker-reset),
+    div.element-container:has(.marker-login) {
         display: none !important;
     }
     
-    /* 1. EVAL WINS (Green Button with Bold White Text) */
+    /* 1. EVAL WINS (Green Button) */
     div.element-container:has(.marker-win) + div.element-container button {
-        background-color: #2E7D32 !important; /* Dark Green */
+        background-color: #2E7D32 !important; 
         border: 2px solid #1B5E20 !important;
     }
-    div.element-container:has(.marker-win) + div.element-container button * {
-        color: #FFFFFF !important;
-        font-weight: 900 !important;
-        font-size: 18px !important;
-    }
+    div.element-container:has(.marker-win) + div.element-container button * { color: #FFFFFF !important; font-weight: 900 !important; font-size: 18px !important; }
     
-    /* 2. EVAL LOSES (Red Button with Bold White Text) */
+    /* 2. EVAL LOSES (Red Button) */
     div.element-container:has(.marker-loss) + div.element-container button {
-        background-color: #C62828 !important; /* Dark Red */
+        background-color: #C62828 !important; 
         border: 2px solid #B71C1C !important;
     }
-    div.element-container:has(.marker-loss) + div.element-container button * {
-        color: #FFFFFF !important;
-        font-weight: 900 !important;
-        font-size: 18px !important;
-    }
+    div.element-container:has(.marker-loss) + div.element-container button * { color: #FFFFFF !important; font-weight: 900 !important; font-size: 18px !important; }
     
-    /* 3. RESET ALL DATA (Bright Red Button with Bold White Text) */
+    /* 3. RESET ALL DATA (Bright Orange Button) */
     div.element-container:has(.marker-reset) + div.element-container button {
-        background-color: #FF3D00 !important; /* Bright Orange/Red */
+        background-color: #FF3D00 !important; 
         border: 2px solid #DD2C00 !important;
     }
-    div.element-container:has(.marker-reset) + div.element-container button * {
-        color: #FFFFFF !important;
-        font-weight: 900 !important;
-        font-size: 16px !important;
+    div.element-container:has(.marker-reset) + div.element-container button * { color: #FFFFFF !important; font-weight: 900 !important; font-size: 16px !important; }
+    
+    /* 4. LOGIN BUTTON (Blue Button) */
+    div.element-container:has(.marker-login) + div.element-container button {
+        background-color: #1976D2 !important; 
+        border: 2px solid #0D47A1 !important;
     }
+    div.element-container:has(.marker-login) + div.element-container button * { color: #FFFFFF !important; font-weight: 900 !important; font-size: 18px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. AI OPTIMIZER & STATE
+# 2. SECURE AUTHENTICATION LOGIN
+# ==========================================
+# CHANGE YOUR USERNAMES AND PASSWORDS HERE
+USER_CREDENTIALS = {
+    "admin": "admin123",
+    "udhay": "hedgepro"
+}
+
+def check_password():
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+
+    if st.session_state["authenticated"]:
+        return True
+
+    def password_entered():
+        user = st.session_state["username"].strip()
+        pwd = st.session_state["password"].strip()
+        if user in USER_CREDENTIALS and USER_CREDENTIALS[user] == pwd:
+            st.session_state["authenticated"] = True
+            del st.session_state["password"]  # Clear password from memory for security
+            del st.session_state["username"]
+        else:
+            st.session_state["authenticated"] = False
+            st.error("🚫 Invalid Username or Password. Please try again.")
+
+    # Render Login Screen
+    st.markdown("<br><br><h1 style='text-align: center; color: #00E676;'>🔒 Secure Access</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #AAAAAA; font-size: 18px;'>Please enter your credentials to access the Funded Hedge AI Pro dashboard.</p><br>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 1.5, 1])
+    with col2:
+        st.markdown("<div style='background-color: #1A1A1A; padding: 40px; border-radius: 8px; border: 1px solid #333333;'>", unsafe_allow_html=True)
+        st.text_input("👤 Username", key="username")
+        st.text_input("🔑 Password", type="password", key="password")
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("<span class='marker-login'></span>", unsafe_allow_html=True)
+        st.button("LOGIN TO SYSTEM", on_click=password_entered, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    return False
+
+# HALT EXECUTION IF NOT LOGGED IN
+if not check_password():
+    st.stop()
+
+
+# ==========================================
+# 3. AI OPTIMIZER & STATE
 # ==========================================
 @dataclass
 class TradeState:
@@ -128,7 +173,7 @@ class SequenceOptimizer:
         return {"recommended_lot": final_target_lot, "exhausted": False}
 
 # ==========================================
-# 3. SQLITE DATABASE
+# 4. SQLITE DATABASE
 # ==========================================
 class DatabaseManager:
     def __init__(self, db_name="hedge_trades.db"):
@@ -160,7 +205,7 @@ class DatabaseManager:
         self.conn.commit()
 
 # ==========================================
-# 4. SESSION STATE INITIALIZATION
+# 5. SESSION STATE INITIALIZATION
 # ==========================================
 def init_session_state():
     if 'db' not in st.session_state:
@@ -219,7 +264,7 @@ def restore_session():
 init_session_state()
 
 # ==========================================
-# 5. LOGIC CALLBACKS
+# 6. LOGIC CALLBACKS
 # ==========================================
 def apply_25k_50k_template():
     if st.session_state.ui_eval_bal == "25000":
@@ -290,7 +335,7 @@ def apply_settings():
     st.session_state.status_message = "Settings Applied successfully."
 
 # ==========================================
-# 6. ENGINE EXECUTION BEFORE RENDER
+# 7. ENGINE EXECUTION BEFORE RENDER
 # ==========================================
 state = TradeState(
     eval_balance=st.session_state.live_eval_balance,
@@ -332,7 +377,7 @@ elif st.session_state.is_exhausted and state.eval_sequence != "":
     st.session_state.status_message = "SEQUENCE EXHAUSTED (Broker Profit Secured)" if pnl > 0 else "SEQUENCE EXHAUSTED (No Limits Met)"
 
 # ==========================================
-# 7. UI RENDER - TABS
+# 8. UI RENDER - TABS
 # ==========================================
 tab1, tab2 = st.tabs(["📊 Execution Dashboard", "⚙️ Settings & Inputs"])
 
@@ -429,19 +474,15 @@ with tab1:
         st.markdown("<br>", unsafe_allow_html=True)
         
         ca, cb = st.columns(2)
-        
         with ca: 
-            # Hidden marker strictly binds CSS to THIS specific EVAL WINS button
             st.markdown("<span class='marker-win'></span>", unsafe_allow_html=True)
             st.button("EVAL WINS (W)", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
             
         with cb: 
-            # Hidden marker strictly binds CSS to THIS specific EVAL LOSES button
             st.markdown("<span class='marker-loss'></span>", unsafe_allow_html=True)
             st.button("EVAL LOSES (L)", use_container_width=True, on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state))
         
         st.markdown("<br>", unsafe_allow_html=True)
-        # Hidden marker strictly binds CSS to THIS specific RESET button
         st.markdown("<span class='marker-reset'></span>", unsafe_allow_html=True)
         st.button("RESET ALL DATA", use_container_width=True, on_click=reset_system)
 

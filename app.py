@@ -9,17 +9,41 @@ from typing import Dict, Any
 # ==========================================
 st.set_page_config(page_title="Funded Hedge AI Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Custom CSS to mimic your dark desktop UI
+# Advanced CSS to force perfect UI formatting, fix button colors, and handle light/dark mode clashes
 st.markdown("""
 <style>
-    .card { background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 20px; height: 100%; }
-    .big-lot { font-size: 85px; font-weight: 900; color: #00E676; text-align: center; margin: 0; padding: 0; line-height: 1; }
-    .center-text { text-align: center; font-weight: bold; }
-    .proj-box { background-color: #222; padding: 20px; border-radius: 8px; line-height: 1.5; font-size: 15px;}
-    div.stButton > button { width: 100%; font-weight: bold; height: 60px;}
-    .btn-win > div > button { background-color: #00C853 !important; color: white !important; font-size: 18px !important; }
-    .btn-loss > div > button { background-color: #D50000 !important; color: white !important; font-size: 18px !important; }
-    .btn-reset > div > button { background-color: #FF8C00 !important; color: black !important; font-size: 16px !important; }
+    /* Force the entire background to be dark so it always looks professional */
+    .stApp { background-color: #0E1117 !important; color: #FAFAFA !important; }
+    
+    /* Make buttons thick and bold */
+    div.stButton > button { height: 60px; border-radius: 8px; }
+    
+    /* 1. EVAL WINS Button (Light Green) */
+    div[data-testid="column"]:nth-of-type(2) div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(1) button {
+        background-color: #A5D6A7 !important; 
+        color: #000000 !important;
+        border: 2px solid #2E7D32 !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+    
+    /* 2. EVAL LOSES Button (Light Red) */
+    div[data-testid="column"]:nth-of-type(2) div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(2) button {
+        background-color: #EF9A9A !important; 
+        color: #000000 !important;
+        border: 2px solid #C62828 !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+    
+    /* 3. RESET ALL DATA Button (Light Red) */
+    div[data-testid="column"]:nth-of-type(2) > div.element-container:last-of-type button {
+        background-color: #EF9A9A !important; 
+        color: #000000 !important;
+        border: 2px solid #C62828 !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -151,7 +175,6 @@ def init_session_state():
         st.session_state.is_exhausted = False
         st.session_state.status_message = ""
         
-        # Attempt to restore session from DB
         restore_session()
 
 def restore_session():
@@ -270,6 +293,7 @@ state = TradeState(
 calc = st.session_state.optimizer.calculate_optimal_hedge(state)
 st.session_state.is_exhausted = calc["exhausted"]
 st.session_state.current_recommended_lot = calc["recommended_lot"]
+rec_lot = calc["recommended_lot"]  # Local variable to securely pass to the UI string
 
 # Dynamic Drawdown Check
 if st.session_state.get('ui_dd_type', 'Dynamic') == "Dynamic" and not st.session_state.dynamic_dd_locked:
@@ -326,106 +350,119 @@ with tab1:
 
     col1, col2, col3 = st.columns([2, 2.5, 2])
     
-    # --- LEFT PANEL: Projections ---
-    with col1:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.markdown("<div class='center-text'>ACCOUNT OVERVIEW</div><br>", unsafe_allow_html=True)
+    # --- LEFT PANEL: Projections (Wrapped correctly to fix clipping and text color) ---
+    pnl = state.broker_balance - st.session_state.initial_broker_bal
+    pnl_color = "#00E676" if pnl > 0 else "#FF5252" if pnl < 0 else "#AAAAAA"
+    pnl_text = f"+${pnl:.2f}" if pnl > 0 else f"-${abs(pnl):.2f}" if pnl < 0 else "$0.00"
+    
+    left_html = f"""
+    <div style="background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 25px; height: 100%; color: #FFFFFF;">
+        <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;">ACCOUNT OVERVIEW</div>
         
-        pnl = state.broker_balance - st.session_state.initial_broker_bal
-        pnl_color = "#00E676" if pnl > 0 else "#FF5252" if pnl < 0 else "#AAAAAA"
-        pnl_text = f"+${pnl:.2f}" if pnl > 0 else f"-${abs(pnl):.2f}" if pnl < 0 else "$0.00"
-        
-        # HTML FIX: Wrapped cleanly to prevent tag leaking
-        st.markdown(f"""
-        <div style="font-size:16px; line-height:1.6;">
+        <div style="font-size:16px; line-height:1.8; margin-bottom: 30px;">
             Eval Balance: <span style='color:#00E676; font-weight:bold;'>${state.eval_balance:,.2f}</span><br>
-            Broker Balance: <span style='color:#FFF; font-weight:bold;'>${state.broker_balance:,.2f}</span><br>
+            Broker Balance: <span style='color:#FFFFFF; font-weight:bold;'>${state.broker_balance:,.2f}</span><br>
             Total Broker PnL: <span style='color:{pnl_color}; font-weight:bold;'>{pnl_text}</span>
         </div>
-        """, unsafe_allow_html=True)
         
-        st.markdown("<br><div class='center-text'>PREDICTED OUTCOMES (NEXT TRADE)</div>", unsafe_allow_html=True)
+        <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 15px;">PREDICTED OUTCOMES (NEXT TRADE)</div>
+    """
+    
+    if term_state:
+        left_html += f"<div style='background-color: #222; padding: 20px; border-radius: 8px; text-align: center;'><b style='color:#FF8C00; font-size: 16px;'>SEQUENCE TERMINATED: {term_state}</b></div>"
+    else:
+        ewin_amt = state.futures_lot * state.tp_points * 10.0
+        bloss_amt = rec_lot * state.tp_points * 100.0
+        eloss_amt = state.futures_lot * state.sl_points * 10.0
+        bwin_amt = rec_lot * state.sl_points * 100.0
         
-        if term_state:
-            st.markdown(f"<div class='proj-box'><b style='color:#FF8C00;'>SEQUENCE TERMINATED: {term_state}</b></div></div>", unsafe_allow_html=True)
-        else:
-            # VARIABLE FIX: Uses st.session_state.current_recommended_lot safely
-            ewin_amt = state.futures_lot * state.tp_points * 10.0
-            bloss_amt = st.session_state.current_recommended_lot * state.tp_points * 100.0
-            eloss_amt = state.futures_lot * state.sl_points * 10.0
-            bwin_amt = st.session_state.current_recommended_lot * state.sl_points * 100.0
-            
-            pnl_W = (state.broker_balance - bloss_amt) - st.session_state.initial_broker_bal
-            pnl_W_str = f"+${pnl_W:,.2f}" if pnl_W > 0 else f"-${abs(pnl_W):,.2f}"
-            c_W = '#00E676' if pnl_W > 0 else '#FF5252'
-            
-            pnl_L = (state.broker_balance + bwin_amt) - st.session_state.initial_broker_bal
-            pnl_L_str = f"+${pnl_L:,.2f}" if pnl_L > 0 else f"-${abs(pnl_L):,.2f}"
-            c_L = '#00E676' if pnl_L > 0 else '#FF5252'
+        pnl_W = (state.broker_balance - bloss_amt) - st.session_state.initial_broker_bal
+        pnl_W_str = f"+${pnl_W:,.2f}" if pnl_W > 0 else f"-${abs(pnl_W):,.2f}"
+        c_W = '#00E676' if pnl_W > 0 else '#FF5252'
+        
+        pnl_L = (state.broker_balance + bwin_amt) - st.session_state.initial_broker_bal
+        pnl_L_str = f"+${pnl_L:,.2f}" if pnl_L > 0 else f"-${abs(pnl_L):,.2f}"
+        c_L = '#00E676' if pnl_L > 0 else '#FF5252'
 
-            st.markdown(f"""
-            <div class='proj-box'>
-                <b style='color:#00E676;'>IF EVAL WINS (W):</b><br>
-                Eval PnL: <span style='color:#00E676;'>+${ewin_amt:,.2f}</span> | Broker PnL: <span style='color:#FF5252;'>-${bloss_amt:,.2f}</span><br>
-                New Eval: <span style='color:#00E676;'>${state.eval_balance + ewin_amt:,.2f}</span><br>
-                New Total Broker PnL: <span style='color:{c_W};'>{pnl_W_str}</span><br><br>
-                <b style='color:#FF5252;'>IF EVAL LOSES (L):</b><br>
-                Eval PnL: <span style='color:#FF5252;'>-${eloss_amt:,.2f}</span> | Broker PnL: <span style='color:#00E676;'>+${bwin_amt:,.2f}</span><br>
-                New Eval: <span style='color:#FF5252;'>${state.eval_balance - eloss_amt:,.2f}</span><br>
-                New Total Broker PnL: <span style='color:{c_L};'>{pnl_L_str}</span>
-            </div></div>
-            """, unsafe_allow_html=True)
+        left_html += f"""
+        <div style='background-color: #222; padding: 20px; border-radius: 8px; line-height: 1.8; font-size: 15px; color: #FFFFFF;'>
+            <b style='color:#00E676; font-size: 16px;'>IF EVAL WINS (W):</b><br>
+            Eval PnL: <span style='color:#00E676;'>+${ewin_amt:,.2f}</span> | Broker PnL: <span style='color:#FF5252;'>-${bloss_amt:,.2f}</span><br>
+            New Eval: <span style='color:#00E676;'>${state.eval_balance + ewin_amt:,.2f}</span><br>
+            New Total Broker PnL: <span style='color:{c_W}; font-weight:bold;'>{pnl_W_str}</span><br><br>
+            
+            <b style='color:#FF5252; font-size: 16px;'>IF EVAL LOSES (L):</b><br>
+            Eval PnL: <span style='color:#FF5252;'>-${eloss_amt:,.2f}</span> | Broker PnL: <span style='color:#00E676;'>+${bwin_amt:,.2f}</span><br>
+            New Eval: <span style='color:#FF5252;'>${state.eval_balance - eloss_amt:,.2f}</span><br>
+            New Total Broker PnL: <span style='color:{c_L}; font-weight:bold;'>{pnl_L_str}</span>
+        </div>
+        """
+    left_html += "</div>"
+    
+    with col1:
+        st.markdown(left_html, unsafe_allow_html=True)
 
     # --- CENTER PANEL: Action Buttons ---
+    lot_txt = term_state if term_state else f"{rec_lot:.2f}"
+    center_html = f"""
+    <div style="background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 40px 20px; color: #FFFFFF; text-align: center;">
+        <div style="font-size:22px; font-weight: bold; margin-bottom: 20px;">NEXT BROKER LOT TO EXECUTE</div>
+        <div style="font-size: 110px; font-weight: 900; color: #00E676; line-height: 1;">{lot_txt}</div>
+    </div>
+    """
+    
     with col2:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.markdown("<div class='center-text' style='font-size:20px;'>NEXT BROKER LOT TO EXECUTE</div>", unsafe_allow_html=True)
-        lot_txt = term_state if term_state else f"{st.session_state.current_recommended_lot:.2f}"
-        st.markdown(f"<p class='big-lot'>{lot_txt}</p><br>", unsafe_allow_html=True)
+        st.markdown(center_html, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
         ca, cb = st.columns(2)
-        with ca: st.markdown('<div class="btn-win">', unsafe_allow_html=True); st.button("EVAL WINS (W)", on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state)); st.markdown('</div>', unsafe_allow_html=True)
-        with cb: st.markdown('<div class="btn-loss">', unsafe_allow_html=True); st.button("EVAL LOSES (L)", on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state)); st.markdown('</div>', unsafe_allow_html=True)
+        with ca: st.button("EVAL WINS (W)", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
+        with cb: st.button("EVAL LOSES (L)", use_container_width=True, on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state))
         
-        st.markdown('<div class="btn-reset">', unsafe_allow_html=True)
-        st.button("RESET ALL DATA", on_click=reset_system)
-        st.markdown('</div></div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.button("RESET ALL DATA", use_container_width=True, on_click=reset_system)
 
-    # --- RIGHT PANEL: Sequences ---
-    with col3:
-        st.markdown("<div class='card'><div class='center-text'>ACTIVE SEQUENCE PATHS</div><br><div style='background-color:#111; padding:15px; border-radius:8px; font-family:monospace; line-height:1.5; font-size:14px;'>", unsafe_allow_html=True)
+    # --- RIGHT PANEL: Sequences (Wrapped correctly) ---
+    right_html = f"""
+    <div style="background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 25px; height: 100%; color: #FFFFFF;">
+        <div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;">ACTIVE SEQUENCE PATHS</div>
+        <div style="background-color:#111; padding:20px; border-radius:8px; font-family:monospace; line-height:1.8; font-size:15px; color: #FFFFFF;">
+    """
+    possible_paths = [seq for seq in st.session_state.optimizer.sequence_map.keys() if seq.startswith(state.eval_sequence)]
+    if not possible_paths:
+        right_html += "<span style='color:#FF5252; font-weight:bold;'>Path Unknown or Ended.</span>"
+    else:
+        red_seqs, blue_seqs, yel_seqs = {"LWLL", "LWLWLL", "LWLWLWLL", "WLWLL"}, {"LWWW", "LWLWWW", "LWLWLWLWW"}, {"LWWW", "LWWLWW", "LWLWWW", "LWLWLWLWLWW", "WLWLWW"}
+        colored_hist = "".join(["<span style='color:#00E676; font-weight:bold;'>W</span>" if c == 'W' else "<span style='color:#FF5252; font-weight:bold;'>L</span>" for c in state.eval_sequence])
         
-        possible_paths = [seq for seq in st.session_state.optimizer.sequence_map.keys() if seq.startswith(state.eval_sequence)]
-        if not possible_paths:
-            st.markdown("<span style='color:#FF5252; font-weight:bold;'>Path Unknown or Ended.</span>", unsafe_allow_html=True)
-        else:
-            red_seqs, blue_seqs, yel_seqs = {"LWLL", "LWLWLL", "LWLWLWLL", "WLWLL"}, {"LWWW", "LWLWWW", "LWLWLWLWW"}, {"LWWW", "LWWLWW", "LWLWWW", "LWLWLWLWLWW", "WLWLWW"}
-            colored_hist = "".join(["<span style='color:#00E676; font-weight:bold;'>W</span>" if c == 'W' else "<span style='color:#FF5252; font-weight:bold;'>L</span>" for c in state.eval_sequence])
+        for seq in possible_paths:
+            serial_str = f"<span style='color:#777777;'>{st.session_state.optimizer.sequence_serial[seq]:02d}. </span>"
+            rem = seq[len(state.eval_sequence):]
             
-            for seq in possible_paths:
-                serial_str = f"<span style='color:#777777;'>{st.session_state.optimizer.sequence_serial[seq]:02d}. </span>"
-                rem = seq[len(state.eval_sequence):]
-                
-                raw_lots = list(st.session_state.optimizer.sequence_map[seq])
-                scaled_lots = [lot * state.scale_factor for lot in raw_lots]
-                if scaled_lots: scaled_lots[0] = state.base_broker_lot
-                
-                fmt_lots = []
-                for i, lot in enumerate(scaled_lots):
-                    if seq in yel_seqs and i == len(scaled_lots) - 1:
-                        fmt_lots.append(f"<span style='color:#FFFF00; font-size:16px; font-weight:900;'>[{lot:.2f}]</span>")
-                    else:
-                        fmt_lots.append(f"{lot:.2f}")
-                        
-                inner = ", ".join(fmt_lots)
-                clr = "#FF5252" if seq in red_seqs else "#42A5F5" if seq in blue_seqs else "#555"
-                html_lots = f"<span style='color:{clr}; font-weight:bold;'> [{inner}]</span>"
-                
-                st.markdown(f"<div>{serial_str}{colored_hist}<span style='color:#777;'>{rem}</span>{html_lots}</div>", unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
+            raw_lots = list(st.session_state.optimizer.sequence_map[seq])
+            scaled_lots = [lot * state.scale_factor for lot in raw_lots]
+            if scaled_lots: scaled_lots[0] = state.base_broker_lot
+            
+            fmt_lots = []
+            for i, lot in enumerate(scaled_lots):
+                if seq in yel_seqs and i == len(scaled_lots) - 1:
+                    fmt_lots.append(f"<span style='color:#FFFF00; font-size:18px; font-weight:900;'>[{lot:.2f}]</span>")
+                else:
+                    fmt_lots.append(f"{lot:.2f}")
+                    
+            inner = ", ".join(fmt_lots)
+            clr = "#FF5252" if seq in red_seqs else "#42A5F5" if seq in blue_seqs else "#777777"
+            html_lots = f"<span style='color:{clr}; font-weight:bold;'> [{inner}]</span>"
+            
+            right_html += f"<div>{serial_str}{colored_hist}<span style='color:#777;'>{rem}</span>{html_lots}</div>"
+            
+    right_html += "</div></div>"
+    
+    with col3:
+        st.markdown(right_html, unsafe_allow_html=True)
 
     # --- BOTTOM PANEL: Table Log ---
-    st.markdown("<br><b style='color:#AAAAAA;'>CURRENT TRADE LOG</b>", unsafe_allow_html=True)
+    st.markdown("<br><b style='color:#AAAAAA; font-size:18px;'>CURRENT TRADE LOG</b>", unsafe_allow_html=True)
     trades = st.session_state.db.get_all_trades()
     if trades:
         df = pd.DataFrame(trades, columns=["Trade #", "Sequence Path", "Eval Balance", "Broker Balance", "Broker Lot", "Eval Result", "Timestamp"])

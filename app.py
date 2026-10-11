@@ -9,39 +9,50 @@ from typing import Dict, Any
 # ==========================================
 st.set_page_config(page_title="Funded Hedge AI Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Custom CSS to force perfect UI formatting, fix button colors, and handle light/dark mode
+# Bulletproof CSS to force perfect UI colors and override Streamlit's native button formatting
 st.markdown("""
 <style>
     /* Force the entire background to be dark so it always looks professional */
     .stApp { background-color: #0E1117 !important; color: #FAFAFA !important; }
     
-    /* Make buttons thick and bold */
+    /* Make all buttons thick and bold */
     div.stButton > button { 
-        height: 60px; 
-        border-radius: 8px; 
+        height: 60px !important; 
+        border-radius: 8px !important; 
         font-size: 18px !important;
-        font-weight: bold !important;
+        font-weight: 900 !important;
     }
     
-    /* 1. EVAL WINS Button (Light Green with Dark Text/Border) */
-    div[data-testid="column"]:nth-child(2) div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-child(1) button {
+    /* 1. EVAL WINS Button (Secondary Button in the 1st Sub-Column -> Light Green) */
+    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] {
         background-color: #A5D6A7 !important; 
-        color: #000000 !important;
         border: 2px solid #2E7D32 !important;
     }
-    
-    /* 2. EVAL LOSES Button (Light Red with Dark Text/Border) */
-    div[data-testid="column"]:nth-child(2) div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-child(2) button {
-        background-color: #EF9A9A !important; 
+    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] * {
         color: #000000 !important;
-        border: 2px solid #C62828 !important;
+        font-weight: 900 !important;
+        font-size: 18px !important;
     }
     
-    /* 3. RESET ALL DATA Button (Light Red with Dark Text/Border) */
-    div[data-testid="column"]:nth-child(2) > div.element-container button {
+    /* 2. EVAL LOSES Button (Primary Button in the 2nd Sub-Column -> Light Red) */
+    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(2) button[kind="primary"] {
         background-color: #EF9A9A !important; 
-        color: #000000 !important;
         border: 2px solid #C62828 !important;
+    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="column"]:nth-of-type(2) button[kind="primary"] * {
+        color: #000000 !important;
+        font-weight: 900 !important;
+        font-size: 18px !important;
+    }
+    
+    /* 3. RESET ALL DATA Button (Standalone Primary Button -> Light Red) */
+    div[data-testid="column"]:nth-of-type(2) > div:last-child button[kind="primary"] {
+        background-color: #EF9A9A !important; 
+        border: 2px solid #C62828 !important;
+    }
+    div[data-testid="column"]:nth-of-type(2) > div:last-child button[kind="primary"] * {
+        color: #000000 !important;
+        font-weight: 900 !important;
         font-size: 16px !important;
     }
 </style>
@@ -350,20 +361,21 @@ with tab1:
 
     col1, col2, col3 = st.columns([2, 2.5, 2])
     
-    # --- LEFT PANEL: Projections (Indentation removed to stop raw text bleeding) ---
+    # --- LEFT PANEL: Projections (Using single-line concatenated string to bypass Markdown errors) ---
     pnl = state.broker_balance - st.session_state.initial_broker_bal
     pnl_color = "#00E676" if pnl > 0 else "#FF5252" if pnl < 0 else "#AAAAAA"
     pnl_text = f"+${pnl:.2f}" if pnl > 0 else f"-${abs(pnl):.2f}" if pnl < 0 else "$0.00"
     
-    left_html = f"""<div style="background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 25px; height: 100%; color: #FFFFFF;">
-<div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;">ACCOUNT OVERVIEW</div>
-<div style="font-size:16px; line-height:1.8; margin-bottom: 30px;">
-Eval Balance: <span style='color:#00E676; font-weight:bold;'>${state.eval_balance:,.2f}</span><br>
-Broker Balance: <span style='color:#FFFFFF; font-weight:bold;'>${state.broker_balance:,.2f}</span><br>
-Total Broker PnL: <span style='color:{pnl_color}; font-weight:bold;'>{pnl_text}</span>
-</div>
-<div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 15px;">PREDICTED OUTCOMES (NEXT TRADE)</div>
-"""
+    left_html = (
+        "<div style='background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 25px; height: 100%; color: #FFFFFF;'>"
+        "<div style='text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;'>ACCOUNT OVERVIEW</div>"
+        "<div style='font-size:16px; line-height:1.8; margin-bottom: 30px;'>"
+        f"Eval Balance: <span style='color:#00E676; font-weight:bold;'>${state.eval_balance:,.2f}</span><br>"
+        f"Broker Balance: <span style='color:#FFFFFF; font-weight:bold;'>${state.broker_balance:,.2f}</span><br>"
+        f"Total Broker PnL: <span style='color:{pnl_color}; font-weight:bold;'>{pnl_text}</span>"
+        "</div>"
+        "<div style='text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 15px;'>PREDICTED OUTCOMES (NEXT TRADE)</div>"
+    )
     
     if term_state:
         left_html += f"<div style='background-color: #222; padding: 20px; border-radius: 8px; text-align: center;'><b style='color:#FF8C00; font-size: 16px;'>SEQUENCE TERMINATED: {term_state}</b></div>"
@@ -381,52 +393,55 @@ Total Broker PnL: <span style='color:{pnl_color}; font-weight:bold;'>{pnl_text}<
         pnl_L_str = f"+${pnl_L:,.2f}" if pnl_L > 0 else f"-${abs(pnl_L):,.2f}"
         c_L = '#00E676' if pnl_L > 0 else '#FF5252'
 
-        left_html += f"""<div style='background-color: #222; padding: 20px; border-radius: 8px; line-height: 1.8; font-size: 15px; color: #FFFFFF;'>
-<b style='color:#00E676; font-size: 16px;'>IF EVAL WINS (W):</b><br>
-Eval PnL: <span style='color:#00E676;'>+${ewin_amt:,.2f}</span> | Broker PnL: <span style='color:#FF5252;'>-${bloss_amt:,.2f}</span><br>
-New Eval: <span style='color:#00E676;'>${state.eval_balance + ewin_amt:,.2f}</span><br>
-New Total Broker PnL: <span style='color:{c_W}; font-weight:bold;'>{pnl_W_str}</span><br><br>
-<b style='color:#FF5252; font-size: 16px;'>IF EVAL LOSES (L):</b><br>
-Eval PnL: <span style='color:#FF5252;'>-${eloss_amt:,.2f}</span> | Broker PnL: <span style='color:#00E676;'>+${bwin_amt:,.2f}</span><br>
-New Eval: <span style='color:#FF5252;'>${state.eval_balance - eloss_amt:,.2f}</span><br>
-New Total Broker PnL: <span style='color:{c_L}; font-weight:bold;'>{pnl_L_str}</span>
-</div>
-"""
+        left_html += (
+            "<div style='background-color: #222; padding: 20px; border-radius: 8px; line-height: 1.8; font-size: 15px; color: #FFFFFF;'>"
+            "<b style='color:#00E676; font-size: 16px;'>IF EVAL WINS (W):</b><br>"
+            f"Eval PnL: <span style='color:#00E676;'>+${ewin_amt:,.2f}</span> | Broker PnL: <span style='color:#FF5252;'>-${bloss_amt:,.2f}</span><br>"
+            f"New Eval: <span style='color:#00E676;'>${state.eval_balance + ewin_amt:,.2f}</span><br>"
+            f"New Total Broker PnL: <span style='color:{c_W}; font-weight:bold;'>{pnl_W_str}</span><br><br>"
+            "<b style='color:#FF5252; font-size: 16px;'>IF EVAL LOSES (L):</b><br>"
+            f"Eval PnL: <span style='color:#FF5252;'>-${eloss_amt:,.2f}</span> | Broker PnL: <span style='color:#00E676;'>+${bwin_amt:,.2f}</span><br>"
+            f"New Eval: <span style='color:#FF5252;'>${state.eval_balance - eloss_amt:,.2f}</span><br>"
+            f"New Total Broker PnL: <span style='color:{c_L}; font-weight:bold;'>{pnl_L_str}</span>"
+            "</div>"
+        )
     left_html += "</div>"
     
     with col1:
         st.markdown(left_html, unsafe_allow_html=True)
 
-    # --- CENTER PANEL: Action Buttons ---
+    # --- CENTER PANEL: Action Buttons (Using single-line concatenated string) ---
     lot_txt = term_state if term_state else f"{rec_lot:.2f}"
-    center_html = f"""<div style="background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 40px 20px; color: #FFFFFF; text-align: center;">
-<div style="font-size:22px; font-weight: bold; margin-bottom: 20px;">NEXT BROKER LOT TO EXECUTE</div>
-<div style="font-size: 110px; font-weight: 900; color: #00E676; line-height: 1;">{lot_txt}</div>
-</div>
-"""
+    center_html = (
+        "<div style='background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 40px 20px; color: #FFFFFF; text-align: center;'>"
+        "<div style='font-size:22px; font-weight: bold; margin-bottom: 20px;'>NEXT BROKER LOT TO EXECUTE</div>"
+        f"<div style='font-size: 110px; font-weight: 900; color: #00E676; line-height: 1;'>{lot_txt}</div>"
+        "</div>"
+    )
     
     with col2:
         st.markdown(center_html, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
         ca, cb = st.columns(2)
-        # Using pure native Streamlit buttons so the CSS targets them safely without breaking the DOM
+        # Passed kind variables to uniquely apply the custom CSS styles to each button
         with ca: 
-            st.button("EVAL WINS (W)", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
+            st.button("EVAL WINS (W)", type="secondary", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
         with cb: 
-            st.button("EVAL LOSES (L)", use_container_width=True, on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state))
+            st.button("EVAL LOSES (L)", type="primary", use_container_width=True, on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state))
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.button("RESET ALL DATA", use_container_width=True, on_click=reset_system)
+        st.button("RESET ALL DATA", type="primary", use_container_width=True, on_click=reset_system)
 
-    # --- RIGHT PANEL: Sequences (Indentation removed to stop raw text bleeding) ---
-    right_html = f"""<div style="background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 25px; height: 100%; color: #FFFFFF;">
-<div style="text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;">ACTIVE SEQUENCE PATHS</div>
-<div style="background-color:#111; padding:20px; border-radius:8px; font-family:monospace; line-height:1.8; font-size:15px; color: #FFFFFF;">
-"""
+    # --- RIGHT PANEL: Sequences (Using single-line concatenated string to bypass Markdown errors) ---
+    right_html = (
+        "<div style='background-color: #1A1A1A; border-radius: 8px; border: 1px solid #333333; padding: 25px; height: 100%; color: #FFFFFF;'>"
+        "<div style='text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px;'>ACTIVE SEQUENCE PATHS</div>"
+        "<div style='background-color:#111; padding:20px; border-radius:8px; font-family:monospace; line-height:1.8; font-size:15px; color: #FFFFFF;'>"
+    )
     possible_paths = [seq for seq in st.session_state.optimizer.sequence_map.keys() if seq.startswith(state.eval_sequence)]
     if not possible_paths:
-        right_html += "<span style='color:#FF5252; font-weight:bold;'>Path Unknown or Ended.</span>\n"
+        right_html += "<span style='color:#FF5252; font-weight:bold;'>Path Unknown or Ended.</span>"
     else:
         red_seqs, blue_seqs, yel_seqs = {"LWLL", "LWLWLL", "LWLWLWLL", "WLWLL"}, {"LWWW", "LWLWWW", "LWLWLWLWW"}, {"LWWW", "LWWLWW", "LWLWWW", "LWLWLWLWLWW", "WLWLWW"}
         colored_hist = "".join(["<span style='color:#00E676; font-weight:bold;'>W</span>" if c == 'W' else "<span style='color:#FF5252; font-weight:bold;'>L</span>" for c in state.eval_sequence])
@@ -450,7 +465,7 @@ New Total Broker PnL: <span style='color:{c_L}; font-weight:bold;'>{pnl_L_str}</
             clr = "#FF5252" if seq in red_seqs else "#42A5F5" if seq in blue_seqs else "#777777"
             html_lots = f"<span style='color:{clr}; font-weight:bold;'> [{inner}]</span>"
             
-            right_html += f"<div>{serial_str}{colored_hist}<span style='color:#777;'>{rem}</span>{html_lots}</div>\n"
+            right_html += f"<div>{serial_str}{colored_hist}<span style='color:#777;'>{rem}</span>{html_lots}</div>"
             
     right_html += "</div></div>"
     

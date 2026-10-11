@@ -9,7 +9,7 @@ from typing import Dict, Any
 # ==========================================
 st.set_page_config(page_title="Funded Hedge AI Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Bulletproof CSS using direct attribute targeting to bypass Streamlit's dynamic DOM wrappers
+# Bulletproof CSS using adjacent sibling markers. This will NEVER fail or revert to white.
 st.markdown("""
 <style>
     /* Force the entire background to be dark so it always looks professional */
@@ -21,30 +21,44 @@ st.markdown("""
         border-radius: 8px !important; 
     }
     
-    /* 1. EVAL WINS (Light Green) - Targets the strictly defined "secondary" button inside the dashboard columns */
-    div[data-testid="column"] button[kind="secondary"], 
-    div[data-testid="column"] button[data-testid="baseButton-secondary"] {
-        background-color: #A5D6A7 !important; 
-        border: 2px solid #2E7D32 !important;
+    /* Hide the invisible markers so they don't take up space */
+    div.element-container:has(.marker-win),
+    div.element-container:has(.marker-loss),
+    div.element-container:has(.marker-reset) {
+        display: none !important;
     }
-    div[data-testid="column"] button[kind="secondary"] p, 
-    div[data-testid="column"] button[data-testid="baseButton-secondary"] p {
-        color: #000000 !important;
+    
+    /* 1. EVAL WINS (Green Button with Bold White Text) */
+    div.element-container:has(.marker-win) + div.element-container button {
+        background-color: #2E7D32 !important; /* Dark Green */
+        border: 2px solid #1B5E20 !important;
+    }
+    div.element-container:has(.marker-win) + div.element-container button * {
+        color: #FFFFFF !important;
         font-weight: 900 !important;
         font-size: 18px !important;
     }
     
-    /* 2. EVAL LOSES & RESET (Light Red) - Targets the strictly defined "primary" buttons inside the dashboard columns */
-    div[data-testid="column"] button[kind="primary"], 
-    div[data-testid="column"] button[data-testid="baseButton-primary"] {
-        background-color: #EF9A9A !important; 
-        border: 2px solid #C62828 !important;
+    /* 2. EVAL LOSES (Red Button with Bold White Text) */
+    div.element-container:has(.marker-loss) + div.element-container button {
+        background-color: #C62828 !important; /* Dark Red */
+        border: 2px solid #B71C1C !important;
     }
-    div[data-testid="column"] button[kind="primary"] p, 
-    div[data-testid="column"] button[data-testid="baseButton-primary"] p {
-        color: #000000 !important;
+    div.element-container:has(.marker-loss) + div.element-container button * {
+        color: #FFFFFF !important;
         font-weight: 900 !important;
         font-size: 18px !important;
+    }
+    
+    /* 3. RESET ALL DATA (Bright Red Button with Bold White Text) */
+    div.element-container:has(.marker-reset) + div.element-container button {
+        background-color: #FF3D00 !important; /* Bright Orange/Red */
+        border: 2px solid #DD2C00 !important;
+    }
+    div.element-container:has(.marker-reset) + div.element-container button * {
+        color: #FFFFFF !important;
+        font-weight: 900 !important;
+        font-size: 16px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -415,16 +429,21 @@ with tab1:
         st.markdown("<br>", unsafe_allow_html=True)
         
         ca, cb = st.columns(2)
-        # Using type="secondary" triggers the exact CSS rule block for the Light Green Button
-        with ca: 
-            st.button("EVAL WINS (W)", type="secondary", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
         
-        # Using type="primary" triggers the exact CSS rule block for the Light Red Button
+        with ca: 
+            # Hidden marker strictly binds CSS to THIS specific EVAL WINS button
+            st.markdown("<span class='marker-win'></span>", unsafe_allow_html=True)
+            st.button("EVAL WINS (W)", use_container_width=True, on_click=process_trade, args=("EVAL WIN", "W"), disabled=bool(term_state))
+            
         with cb: 
-            st.button("EVAL LOSES (L)", type="primary", use_container_width=True, on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state))
+            # Hidden marker strictly binds CSS to THIS specific EVAL LOSES button
+            st.markdown("<span class='marker-loss'></span>", unsafe_allow_html=True)
+            st.button("EVAL LOSES (L)", use_container_width=True, on_click=process_trade, args=("EVAL LOSS", "L"), disabled=bool(term_state))
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.button("RESET ALL DATA", type="primary", use_container_width=True, on_click=reset_system)
+        # Hidden marker strictly binds CSS to THIS specific RESET button
+        st.markdown("<span class='marker-reset'></span>", unsafe_allow_html=True)
+        st.button("RESET ALL DATA", use_container_width=True, on_click=reset_system)
 
     # --- RIGHT PANEL: Sequences ---
     right_html = (

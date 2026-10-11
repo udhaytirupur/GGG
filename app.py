@@ -335,19 +335,25 @@ with tab1:
         pnl_color = "#00E676" if pnl > 0 else "#FF5252" if pnl < 0 else "#AAAAAA"
         pnl_text = f"+${pnl:.2f}" if pnl > 0 else f"-${abs(pnl):.2f}" if pnl < 0 else "$0.00"
         
-        st.markdown(f"Eval Balance: <span style='color:#00E676; font-weight:bold;'>${state.eval_balance:,.2f}</span><br>"
-                    f"Broker Balance: <span style='color:#FFF; font-weight:bold;'>${state.broker_balance:,.2f}</span><br>"
-                    f"Total Broker PnL: <span style='color:{pnl_color}; font-weight:bold;'>{pnl_text}</span>", unsafe_allow_html=True)
+        # HTML FIX: Wrapped cleanly to prevent tag leaking
+        st.markdown(f"""
+        <div style="font-size:16px; line-height:1.6;">
+            Eval Balance: <span style='color:#00E676; font-weight:bold;'>${state.eval_balance:,.2f}</span><br>
+            Broker Balance: <span style='color:#FFF; font-weight:bold;'>${state.broker_balance:,.2f}</span><br>
+            Total Broker PnL: <span style='color:{pnl_color}; font-weight:bold;'>{pnl_text}</span>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown("<br><div class='center-text'>PREDICTED OUTCOMES (NEXT TRADE)</div>", unsafe_allow_html=True)
         
         if term_state:
             st.markdown(f"<div class='proj-box'><b style='color:#FF8C00;'>SEQUENCE TERMINATED: {term_state}</b></div></div>", unsafe_allow_html=True)
         else:
+            # VARIABLE FIX: Uses st.session_state.current_recommended_lot safely
             ewin_amt = state.futures_lot * state.tp_points * 10.0
-            bloss_amt = state.recommended_lot * state.tp_points * 100.0
+            bloss_amt = st.session_state.current_recommended_lot * state.tp_points * 100.0
             eloss_amt = state.futures_lot * state.sl_points * 10.0
-            bwin_amt = state.recommended_lot * state.sl_points * 100.0
+            bwin_amt = st.session_state.current_recommended_lot * state.sl_points * 100.0
             
             pnl_W = (state.broker_balance - bloss_amt) - st.session_state.initial_broker_bal
             pnl_W_str = f"+${pnl_W:,.2f}" if pnl_W > 0 else f"-${abs(pnl_W):,.2f}"
@@ -374,7 +380,7 @@ with tab1:
     with col2:
         st.markdown("<div class='card'>", unsafe_allow_html=True)
         st.markdown("<div class='center-text' style='font-size:20px;'>NEXT BROKER LOT TO EXECUTE</div>", unsafe_allow_html=True)
-        lot_txt = term_state if term_state else f"{state.recommended_lot:.2f}"
+        lot_txt = term_state if term_state else f"{st.session_state.current_recommended_lot:.2f}"
         st.markdown(f"<p class='big-lot'>{lot_txt}</p><br>", unsafe_allow_html=True)
         
         ca, cb = st.columns(2)

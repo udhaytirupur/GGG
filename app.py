@@ -64,7 +64,7 @@ st.markdown("""
 # ==========================================
 # CHANGE YOUR USERNAMES AND PASSWORDS HERE
 USER_CREDENTIALS = {
-    "admin": "admin123",
+    "admin": "gold@123",
     "udhay": "hedgepro"
 }
 
